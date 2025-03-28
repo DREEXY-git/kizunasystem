@@ -1,13 +1,13 @@
-import React from 'react';
-import { FarmProvider } from './contexts/FarmContext';
-import IntegratedFarmApp from './components/IntegratedFarmApp';
+import React from "react";
+import IntegratedFarmApp from "./components/IntegratedFarmApp";
+import { FarmProvider } from "./contexts/FarmContext";
 
-function App() {
+const App: React.FC = () => {
   return (
     <FarmProvider>
       <IntegratedFarmApp />
     </FarmProvider>
   );
-}
+};
 
-export default App; 
+export default App;
