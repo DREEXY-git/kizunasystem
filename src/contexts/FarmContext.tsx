@@ -305,7 +305,7 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
   };
   
   // Calculate nutrition data from purchases
-  const calculateNutritionData = (monthPurchases: any[]) => {
+  const calculateNutritionData = (monthPurchases) => {
     if (monthPurchases.length === 0) {
       return nutritionData; // Return existing data if no purchases
     }
@@ -334,8 +334,8 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
         const weightedQuantity = purchase.quantity * (ratio / 100);
         
         Object.entries(feed.nutritions).forEach(([key, value]) => {
-          if (nutritions[key as keyof typeof nutritions] !== undefined) {
-            nutritions[key as keyof typeof nutritions] += (value * weightedQuantity / totalWeightedWeight);
+          if (nutritions[key] !== undefined) {
+            nutritions[key] += (value * weightedQuantity / totalWeightedWeight);
           }
         });
       }
@@ -355,10 +355,7 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
           case 'amino': label = 'アミノ酸'; break;
           default: label = customNutritions[name] || name;
         }
-        return {
-          name: label,
-          value: Math.round(value * 100) / 100
-        };
+        return { name: label, value };
       });
   };
   
@@ -422,24 +419,28 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
   
   // Add feed
   const addFeed = (feedData: any) => {
-    setFeeds([...feeds, { id: Date.now(), ...feedData }]);
+    const newFeed = {
+      id: Date.now(),
+      ...feedData
+    };
     
-    // Update related data
-    setTimeout(() => {
-      syncData();
-    }, 0);
+    setFeeds([...feeds, newFeed]);
+    return newFeed;
   };
   
   // Update feed
   const updateFeed = (feedId: number, feedData: any) => {
-    setFeeds(feeds.map(feed => 
-      feed.id === feedId ? { ...feed, ...feedData } : feed
-    ));
+    const updatedFeeds = feeds.map(feed => {
+      if (feed.id === feedId) {
+        return {
+          ...feed,
+          ...feedData
+        };
+      }
+      return feed;
+    });
     
-    // Update related data
-    setTimeout(() => {
-      syncData();
-    }, 0);
+    setFeeds(updatedFeeds);
   };
   
   // Delete feed
@@ -536,89 +537,13 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
     });
   };
   
-  // Calculate total cost for a month
-  const calculateTotalCost = (monthIndex: number) => {
-    const monthPurchases = getMonthlyPurchases(monthIndex);
-    return monthPurchases.reduce((total, purchase) => {
-      const feed = feeds.find(f => f.id === purchase.feedId);
-      const ratio = purchase.feedingRatio || 100;
-      return total + (feed ? (feed.cost * purchase.quantity / 1000) * (ratio / 100) : 0);
-    }, 0);
-  };
-  
-  // 月別の飼料購入データを取得
-  const getMonthlyPurchases = (monthIndex) => {
-    const year = new Date().getFullYear();
-    const startDate = new Date(year, monthIndex, 1);
-    const endDate = new Date(year, monthIndex + 1, 0);
-    
-    return purchases.filter(purchase => {
-      const purchaseDate = new Date(purchase.purchaseDate);
-      return purchaseDate >= startDate && purchaseDate <= endDate;
-    });
-  };
-  
-  // Calculate nutrition data from purchases
-  const calculateNutritionData = (monthPurchases) => {
-    if (monthPurchases.length === 0) {
-      return nutritionData; // Return existing data if no purchases
-    }
-    
-    // Calculate total weighted amounts
-    let totalWeightedWeight = 0;
-    monthPurchases.forEach(purchase => {
-      const ratio = purchase.feedingRatio || 100;
-      totalWeightedWeight += purchase.quantity * (ratio / 100);
-    });
-    
-    // Calculate nutritional values
-    const nutritions = {
-      protein: 0,
-      fat: 0,
-      fiber: 0,
-      calcium: 0,
-      umami: 0,
-      amino: 0
-    };
-    
-    monthPurchases.forEach(purchase => {
-      const feed = feeds.find(f => f.id === purchase.feedId);
-      if (feed) {
-        const ratio = purchase.feedingRatio || 100;
-        const weightedQuantity = purchase.quantity * (ratio / 100);
-        
-        Object.entries(feed.nutritions).forEach(([key, value]) => {
-          if (nutritions[key] !== undefined) {
-            nutritions[key] += (value * weightedQuantity / totalWeightedWeight);
-          }
-        });
-      }
-    });
-    
-    // Format for chart display
-    return Object.entries(nutritions)
-      .filter(([name]) => visibleNutritions[name])
-      .map(([name, value]) => {
-        let label;
-        switch(name) {
-          case 'protein': label = 'タンパク質'; break;
-          case 'fat': label = '脂肪'; break;
-          case 'fiber': label = '繊維'; break;
-          case 'calcium': label = 'カルシウム'; break;
-          case 'umami': label = '旨み成分'; break;
-          case 'amino': label = 'アミノ酸'; break;
-          default: label = customNutritions[name] || name;
-        }
-        return { name: label, value };
-      });
-  };
-  
   // 月別の総コスト計算
   const calculateTotalCost = (monthIndex) => {
     const monthPurchases = getMonthlyPurchases(monthIndex);
     return monthPurchases.reduce((total, purchase) => {
       const feed = feeds.find(f => f.id === purchase.feedId);
-      return total + (feed ? feed.cost * purchase.quantity / 1000 : 0);
+      const ratio = purchase.feedingRatio || 100;
+      return total + (feed ? (feed.cost * purchase.quantity / 1000) * (ratio / 100) : 0);
     }, 0);
   };
   
@@ -651,33 +576,11 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
     }).sort((a, b) => b.value - a.value);
   };
   
-  // 卵1個あたりのコスト計算
-  const calculateEggCost = () => {
-    const totalCost = calculateTotalCost(currentMonth);
-    if (eggData.eggCount <= 0) return 0;
-    return totalCost / eggData.eggCount;
-  };
-  
   // 損益分岐点の計算
   const calculateBreakEvenPoint = () => {
     const totalCost = calculateTotalCost(currentMonth);
     if (eggData.eggPrice <= 0) return 0;
     return Math.ceil(totalCost / eggData.eggPrice);
-  };
-  
-  // 卵の利益計算
-  const calculateEggProfit = () => {
-    const totalCost = calculateTotalCost(currentMonth);
-    const totalRevenue = eggData.eggCount * eggData.eggPrice;
-    return totalRevenue - totalCost;
-  };
-  
-  // 利益率の計算
-  const calculateProfitMargin = () => {
-    const totalCost = calculateTotalCost(currentMonth);
-    const totalRevenue = eggData.eggCount * eggData.eggPrice;
-    if (totalRevenue === 0) return 0;
-    return (totalRevenue - totalCost) / totalRevenue * 100;
   };
   
   // 各飼料の栄養影響度を計算
@@ -855,76 +758,9 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
     return true;
   };
   
-  // 飼料の追加
-  const addFeed = (feedData) => {
-    const newFeed = {
-      id: Date.now(),
-      ...feedData
-    };
-    
-    setFeeds([...feeds, newFeed]);
-    return newFeed;
-  };
-  
-  // 飼料の更新
-  const updateFeed = (feedId, feedData) => {
-    const updatedFeeds = feeds.map(feed => {
-      if (feed.id === feedId) {
-        return {
-          ...feed,
-          ...feedData
-        };
-      }
-      return feed;
-    });
-    
-    setFeeds(updatedFeeds);
-  };
-  
-  // 飼料の削除
-  const deleteFeed = (feedId) => {
-    // この飼料を使用している購入記録があるか確認
-    const usedInPurchases = purchases.some(purchase => purchase.feedId === feedId);
-    
-    if (usedInPurchases) {
-      return false; // 使用中で削除不可
-    }
-    
-    setFeeds(feeds.filter(feed => feed.id !== feedId));
-    return true;
-  };
-  
-  // 購入記録の追加
-  const addPurchase = (purchaseData) => {
-    const newPurchase = {
-      id: Date.now(),
-      ...purchaseData
-    };
-    
-    setPurchases([...purchases, newPurchase]);
-    return newPurchase;
-  };
-  
-  // 購入記録の削除
-  const deletePurchase = (purchaseId) => {
-    setPurchases(purchases.filter(purchase => purchase.id !== purchaseId));
-  };
-  
   // 競合他社表示の切替
   const toggleCompetitorsView = () => {
     setShowCompetitors(!showCompetitors);
-  };
-  
-  // 在庫アイテムの更新
-  const updateInventoryItem = (itemId, data) => {
-    const updatedItems = inventoryItems.map(item => {
-      if (item.id === itemId) {
-        return { ...item, ...data };
-      }
-      return item;
-    });
-    
-    setInventoryItems(updatedItems);
   };
   
   // 鶏群の更新
@@ -1094,36 +930,9 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
     return nutritions;
   };
   
-  // 既読にする
-  const markAsRead = (notificationId) => {
-    const updatedNotifications = notifications.map(notification => {
-      if (notification.id === notificationId) {
-        return { ...notification, read: true };
-      }
-      return notification;
-    });
-    
-    setNotifications(updatedNotifications);
-  };
-  
-  // すべて既読にする
-  const markAllAsRead = () => {
-    const updatedNotifications = notifications.map(notification => ({
-      ...notification,
-      read: true
-    }));
-    
-    setNotifications(updatedNotifications);
-  };
-  
   // 収益目標の更新
   const updateAnnualGoals = (goals) => {
     setAnnualGoals(goals);
-  };
-  
-  // 卵データの更新
-  const updateEggData = (data) => {
-    setEggData(data);
   };
   
   // コンテキスト値
@@ -1171,8 +980,6 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
     calculateFeedCostPercentage,
     calculateEggCost,
     calculateBreakEvenPoint,
-    calculateEggProfit,
-    calculateProfitMargin,
     calculateNutritionContribution,
     syncData,
     toggleNotifications,
