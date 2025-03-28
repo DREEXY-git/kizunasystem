@@ -90,6 +90,7 @@ const FarmSystem: React.FC = () => {
   } = useContext(FarmContext);
 
   const [tabValue, setTabValue] = useState(0);
+  const [activeRevenueTab, setActiveRevenueTab] = useState(0);
   const [openFlockDialog, setOpenFlockDialog] = useState(false);
   const [selectedFlock, setSelectedFlock] = useState<any>(null);
   const [newFlock, setNewFlock] = useState({
