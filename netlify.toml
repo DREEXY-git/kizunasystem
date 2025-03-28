@@ -1,5 +1,5 @@
 [build]
-  command = "CI=false npm run build"
+  command = "CI=false npm install --legacy-peer-deps && npm run build"
   publish = "build"
   base = "."
 
@@ -13,3 +13,4 @@
   SKIP_PREFLIGHT_CHECK = "true"
   TSC_COMPILE_ON_ERROR = "true"
   GENERATE_SOURCEMAP = "false"
+
