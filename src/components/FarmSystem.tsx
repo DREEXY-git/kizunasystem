@@ -127,9 +127,15 @@ const FarmSystem: React.FC = () => {
   };
 
   const handleSaveFlock = () => {
-    // TODO: Implement flock save functionality
-    handleCloseFlockDialog();
-  };
+  if (selectedFlock) {
+    updateFlock(selectedFlock.id, newFlock);
+  } else {
+    addFlock(newFlock);
+  }
+  handleCloseFlockDialog();
+  // データ再同期
+  syncData();
+};
 
   // 在庫データのグラフ用データ
   const inventoryData = inventoryItems.map(item => ({
