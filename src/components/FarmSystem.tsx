@@ -135,8 +135,8 @@ const FarmSystem: React.FC = () => {
   const inventoryData = inventoryItems.map(item => ({
     name: item.name,
     currentStock: item.currentStock,
-    minLevel: item.minLevel,
-    optimalLevel: item.optimalLevel
+    minStock: item.minStock,
+    optimalStock: item.optimalStock
   }));
 
   return (
@@ -311,8 +311,8 @@ const FarmSystem: React.FC = () => {
                   <ChartTooltip />
                   <Legend />
                   <Bar dataKey="currentStock" fill="#8884d8" name="現在の在庫" />
-                  <Bar dataKey="minLevel" fill="#ff7300" name="最小在庫" />
-                  <Bar dataKey="optimalLevel" fill="#387908" name="適正在庫" />
+                  <Bar dataKey="minStock" fill="#ff7300" name="最小在庫" />
+                  <Bar dataKey="optimalStock" fill="#387908" name="適正在庫" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -335,8 +335,8 @@ const FarmSystem: React.FC = () => {
                   <TableRow key={item.id}>
                     <TableCell>{item.name}</TableCell>
                     <TableCell align="right">{item.currentStock}{item.unit}</TableCell>
-                    <TableCell align="right">{item.minLevel}{item.unit}</TableCell>
-                    <TableCell align="right">{item.optimalLevel}{item.unit}</TableCell>
+                    <TableCell align="right">{item.minStock}{item.unit}</TableCell>
+                    <TableCell align="right">{item.optimalStock}{item.unit}</TableCell>
                     <TableCell align="right">{item.daysRemaining}日</TableCell>
                     <TableCell align="right">
                       <span className={`px-2 py-1 rounded ${
