@@ -36,8 +36,14 @@ const Dashboard: React.FC = () => {
     calculateTotalCost,
     calculateEggProfit,
     calculateProfitMargin,
-    currentMonth
+    currentMonth,
+    syncData
   } = useContext(FarmContext);
+
+  // データの初期同期を実行
+  useEffect(() => {
+    syncData();
+  }, [syncData]);
 
   // 合計鶏数を計算
   const totalHens = flocks.reduce((sum, flock) => sum + flock.birdCount, 0);
@@ -210,38 +216,44 @@ const Dashboard: React.FC = () => {
                 style={{ backgroundColor: STATUS_COLORS.normal, color: 'white' }}
               />
             </Box>
-            <List>
-              {criticalItems.map((item) => (
-                <ListItem key={item.id}>
-                  <ListItemIcon>
-                    <ErrorIcon style={{ color: STATUS_COLORS.critical }} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.name}
-                    secondary={`${item.currentStock}${item.unit} (残り${item.daysRemaining}日分)`}
-                  />
-                </ListItem>
-              ))}
-              {warningItems.map((item) => (
-                <ListItem key={item.id}>
-                  <ListItemIcon>
-                    <WarningIcon style={{ color: STATUS_COLORS.warning }} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.name}
-                    secondary={`${item.currentStock}${item.unit} (残り${item.daysRemaining}日分)`}
-                  />
-                </ListItem>
-              ))}
-              {criticalItems.length === 0 && warningItems.length === 0 && (
-                <ListItem>
-                  <ListItemIcon>
-                    <CheckCircleIcon style={{ color: STATUS_COLORS.normal }} />
-                  </ListItemIcon>
-                  <ListItemText primary="すべての在庫レベルは正常です" />
-                </ListItem>
-              )}
-            </List>
+            {inventoryItems.length === 0 ? (
+              <ListItem>
+                <ListItemText primary="インベントリデータが読み込まれていません" />
+              </ListItem>
+            ) : (
+              <List>
+                {criticalItems.map((item) => (
+                  <ListItem key={item.id}>
+                    <ListItemIcon>
+                      <ErrorIcon style={{ color: STATUS_COLORS.critical }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={item.name}
+                      secondary={`${item.currentStock}${item.unit} (残り${item.daysRemaining}日分)`}
+                    />
+                  </ListItem>
+                ))}
+                {warningItems.map((item) => (
+                  <ListItem key={item.id}>
+                    <ListItemIcon>
+                      <WarningIcon style={{ color: STATUS_COLORS.warning }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={item.name}
+                      secondary={`${item.currentStock}${item.unit} (残り${item.daysRemaining}日分)`}
+                    />
+                  </ListItem>
+                ))}
+                {criticalItems.length === 0 && warningItems.length === 0 && (
+                  <ListItem>
+                    <ListItemIcon>
+                      <CheckCircleIcon style={{ color: STATUS_COLORS.normal }} />
+                    </ListItemIcon>
+                    <ListItemText primary="すべての在庫レベルは正常です" />
+                  </ListItem>
+                )}
+              </List>
+            )}
           </Paper>
         </Grid>
       </Grid>
