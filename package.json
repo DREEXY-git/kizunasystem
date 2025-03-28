@@ -2,6 +2,7 @@
   "name": "poultry-management-system",
   "version": "1.0.0",
   "description": "養鶏場の管理、飼料コスト計算、在庫管理を行うシステム",
+  "homepage": "/",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
