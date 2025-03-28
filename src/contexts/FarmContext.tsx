@@ -304,28 +304,6 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
     setProfitMargin(calculatedMargin);
   };
   
-  // Calculate nutrition data from purchases
-  const calculateNutritionData = (monthPurchases: any[]) => {
-    if (monthPurchases.length === 0) {
-      return nutritionData; // Return existing data if no purchases
-    }
-    
-    // Calculate total weighted amounts
-    let totalWeightedWeight = 0;
-    monthPurchases.forEach(purchase => {
-      const ratio = purchase.feedingRatio || 100;
-      totalWeightedWeight += purchase.quantity * (ratio / 100);
-    });
-    
-    // Calculate nutritional values
-    const nutritions = {
-      protein: 0,
-      fat: 0,
-      fiber: 0,
-      calcium: 0,
-      umami: 0,
-      amino: 0
-    };
     
     monthPurchases.forEach(purchase => {
       const feed = feeds.find(f => f.id === purchase.feedId);
@@ -545,28 +523,6 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
   };
   
   
-  // Calculate nutrition data from purchases
-  const calculateNutritionData = (monthPurchases) => {
-    if (monthPurchases.length === 0) {
-      return nutritionData; // Return existing data if no purchases
-    }
-    
-    // Calculate total weighted amounts
-    let totalWeightedWeight = 0;
-    monthPurchases.forEach(purchase => {
-      const ratio = purchase.feedingRatio || 100;
-      totalWeightedWeight += purchase.quantity * (ratio / 100);
-    });
-    
-    // Calculate nutritional values
-    const nutritions = {
-      protein: 0,
-      fat: 0,
-      fiber: 0,
-      calcium: 0,
-      umami: 0,
-      amino: 0
-    };
     
     monthPurchases.forEach(purchase => {
       const feed = feeds.find(f => f.id === purchase.feedId);
