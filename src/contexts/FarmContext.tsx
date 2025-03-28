@@ -393,13 +393,13 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Calculate nutritional contributions
-  const calculateNutritionData = (monthPurchases) => {
+  const calculateNutritionData = (monthPurchases: any[]) => {
     if (!monthPurchases || monthPurchases.length === 0) {
       return [];
     }
 
     // Calculate weighted nutrition amounts
-    const totalWeightedNutritions = {};
+    const totalWeightedNutritions: {[key: string]: number} = {};
     let totalQuantity = 0;
 
     monthPurchases.forEach(purchase => {
@@ -430,7 +430,7 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Get visible nutrition entries
-  const [visibleNutritions, setVisibleNutritions] = useState({
+  const [visibleNutritions, setVisibleNutritions] = useState<{[key: string]: boolean}>({
     protein: true,
     fat: true,
     fiber: true,
@@ -481,7 +481,7 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
 
   // Get nutrition label
   const getNutritionLabel = (key: string) => {
-    const labels = {
+    const labels: {[key: string]: string} = {
       protein: 'タンパク質',
       fat: '脂肪',
       fiber: '繊維',
@@ -523,28 +523,28 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Sort function for feeds
-  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'ascending' });
+  const [sortConfig, setSortConfig] = useState<{ field: string; direction: 'ascending' | 'descending' }>({ field: 'name', direction: 'ascending' });
 
-  const sortFeeds = (key: string) => {
-    let direction = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+  const sortFeeds = (field: string) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig.field === field && sortConfig.direction === 'ascending') {
       direction = 'descending';
     }
     
-    setSortConfig({ key, direction });
+    setSortConfig({ field, direction });
   };
 
   // Get sorted feeds
   const getSortedFeeds = () => {
     return [...feeds].sort((a, b) => {
-      if (sortConfig.key === 'name') {
+      if (sortConfig.field === 'name') {
         if (a.name < b.name) {
           return sortConfig.direction === 'ascending' ? -1 : 1;
         }
         if (a.name > b.name) {
           return sortConfig.direction === 'ascending' ? 1 : -1;
         }
-      } else if (sortConfig.key === 'cost') {
+      } else if (sortConfig.field === 'cost') {
         if (a.cost < b.cost) {
           return sortConfig.direction === 'ascending' ? -1 : 1;
         }
@@ -575,7 +575,7 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
     }
     
     // Group purchases by feed
-    const feedContributions = {};
+    const feedContributions: {[key: number]: any} = {};
     let totalWeight = 0;
     
     // Calculate total weight and group by feed
@@ -817,6 +817,7 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
       nutritionData,
       nutritionContributionData,
       calculateNutritionData,
+      calculateNutritionContribution,
       
       activeTabs,
       changeTab,

@@ -56,7 +56,7 @@ export interface Flock {
 
 // Active tabs types
 export interface ActiveTabs {
-  poultry: 'economic' | 'health' | 'production';
+  poultry: 'economic' | 'health' | 'production' | 'system' | 'dashboard';
   inventory: 'inventory';
 }
 
@@ -92,7 +92,7 @@ export interface FeedRequirements {
 }
 
 export interface InventoryAdjustment {
-  type: 'add' | 'remove';
+  type: 'add' | 'remove' | 'subtract' | 'set';
   quantity: number;
   notes?: string;
 }
@@ -112,28 +112,45 @@ export interface CompetitorEgg {
 }
 
 export interface FarmContextType {
+  // Core data
   feeds: Feed[];
+  purchases: any[];
+  inventoryItems: InventoryItem[];
+  flocks: Flock[];
+  notifications: Notification[];
+  
+  // Display state
+  activeTabs: ActiveTabs;
+  showNotifications: boolean;
+  visibleNutritions: {[key: string]: boolean};
+  
+  // Statistics & Metrics
   totalHens: number;
   dailyEggProduction: number;
   currentMonthFeedCost: number;
   projectedProfit: number;
   profitMargin: number;
   eggData: EggData;
-  inventoryItems: InventoryItem[];
   feedDistribution: FeedDistributionItem[];
   nutritionData: NutritionDataItem[];
-  notifications: Notification[];
-  showNotifications: boolean;
+  nutritionContributionData: any[];
+  
+  // Settings & Configuration
   lastSync: string;
-  activeTabs: ActiveTabs;
   currentMonth: number;
   months: string[];
   feedRequirements: FeedRequirements;
-  flocks: Flock[];
   COLORS: string[];
   userId: string;
-  syncData: () => void;
+  
+  // State setters
+  setFeeds: React.Dispatch<React.SetStateAction<Feed[]>>;
+  setPurchases: React.Dispatch<React.SetStateAction<any[]>>;
+  setInventoryItems: React.Dispatch<React.SetStateAction<InventoryItem[]>>;
   setMonth: (month: number) => void;
+  
+  // Core functions
+  syncData: () => void;
   updateEggData: (data: EggData) => void;
   calculateTotalCost: (month: number) => number;
   getMonthlyPurchases: (monthIndex: number) => any[];
@@ -147,4 +164,36 @@ export interface FarmContextType {
   toggleNotifications: () => void;
   updateInventoryItem: (id: number, adjustment: InventoryAdjustment) => void;
   changeTab: (system: keyof ActiveTabs, tab: string) => void;
+  
+  // Sorting & filtering
+  sortFeeds: (field: string, direction: 'ascending' | 'descending') => void;
+  sortConfig: { field: string; direction: 'ascending' | 'descending' };
+  getSortedFeeds: () => Feed[];
+  
+  // Nutrition management
+  toggleNutritionVisibility: (key: string) => void;
+  newNutritionName: string;
+  setNewNutritionName: React.Dispatch<React.SetStateAction<string>>;
+  addCustomNutrition: (name: string) => void;
+  customNutritions: string[];
+  getNutritionLabel: (key: string) => string;
+  deleteNutrition: (key: string) => void;
+  showNutritionInfo: boolean;
+  setShowNutritionInfo: React.Dispatch<React.SetStateAction<boolean>>;
+  nutritionBenefits: {[key: string]: string};
+  calculateNutritionContribution: (monthIndex: number) => any[];
+  calculateNutritionData: (monthPurchases: any[]) => any[];
+  
+  // Export functions
+  downloadFeedsAsCSV: () => void;
+  downloadPurchasesAsCSV: () => void;
+  downloadNutritionDataAsCSV: () => void;
+  downloadAllDataAsJSON: () => void;
+  
+  // Competitor analysis
+  showCompetitors: boolean;
+  selectedCompetitor: string;
+  setSelectedCompetitor: React.Dispatch<React.SetStateAction<string>>;
+  toggleCompetitorsView: () => void;
+  competitors: any[];
 } 
