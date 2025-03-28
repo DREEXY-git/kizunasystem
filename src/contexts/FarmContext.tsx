@@ -1,118 +1,60 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext } from 'react';
+import {
+  Feed,
+  InventoryItem,
+  FeedDistributionItem,
+  NutritionDataItem,
+  EggData,
+  Flock,
+  ActiveTabs,
+  Notification,
+  FeedRequirements,
+  InventoryAdjustment,
+  FarmContextType
+} from '../components/types';
 
-export const FarmContext = createContext<any>(null);
+// Create context for the entire application
+export const FarmContext = createContext<FarmContextType | null>(null);
 
+// Format time utility function
+const formatTimeAgo = (dateString: string) => {
+  const date = new Date(dateString.replace(/(\d{4})\/(\d{2})\/(\d{2})/, '$1-$2-$3'));
+  const now = new Date();
+  const diffSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffSeconds < 60) return `${diffSeconds}秒前`;
+  if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}分前`;
+  if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)}時間前`;
+  if (diffSeconds < 604800) return `${Math.floor(diffSeconds / 86400)}日前`;
+  
+  return dateString;
+};
+
+// FarmProvider Component
 export function FarmProvider({ children }: { children: React.ReactNode }) {
+  // ユーザーIDの生成
+  const [userId] = useState(`user_${Math.random().toString(36).substr(2, 9)}`);
+
   // Colors for charts
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
   
   // Initial feeds data
-  const initialFeeds = [
+  const [feeds, setFeeds] = useState<Feed[]>([
     { id: 1, name: '配合飼料A', cost: 5000, unit: 'kg', nutritions: { protein: 18, fat: 4, fiber: 8, calcium: 1, umami: 2.5, amino: 14 } },
     { id: 2, name: '牧草', cost: 3000, unit: 'kg', nutritions: { protein: 12, fat: 2, fiber: 22, calcium: 0.5, umami: 1.2, amino: 9 } },
     { id: 3, name: 'サイレージ', cost: 2500, unit: 'kg', nutritions: { protein: 10, fat: 3, fiber: 25, calcium: 0.3, umami: 1.5, amino: 8 } },
     { id: 4, name: '大豆かす', cost: 6500, unit: 'kg', nutritions: { protein: 45, fat: 1, fiber: 7, calcium: 0.3, umami: 3.8, amino: 38 } }
-  ];
-
-  // Initial purchases data
-  const initialPurchases = [
-    { id: 101, feedId: 1, quantity: 500, feedingRatio: 20, purchaseDate: new Date(2025, 0, 15).toISOString().split('T')[0] },
-    { id: 102, feedId: 2, quantity: 300, feedingRatio: 30, purchaseDate: new Date(2025, 0, 20).toISOString().split('T')[0] },
-    { id: 103, feedId: 3, quantity: 800, feedingRatio: 40, purchaseDate: new Date(2025, 1, 10).toISOString().split('T')[0] },
-    { id: 104, feedId: 4, quantity: 200, feedingRatio: 10, purchaseDate: new Date(2025, 1, 20).toISOString().split('T')[0] }
-  ];
-
-  // 栄養成分の健康メリット情報
-  const nutritionBenefits = {
-    protein: 'タンパク質：筋肉の発達と維持、免疫機能の強化、組織の修復に重要です。',
-    fat: '脂肪：エネルギー源として、ホルモン生成や脂溶性ビタミンの吸収に必要です。',
-    fiber: '繊維：消化を助け、腸内環境を整え、糖質の吸収を穏やかにします。',
-    calcium: 'カルシウム：骨や歯の形成、神経伝達、筋肉機能、血液凝固に重要です。',
-    umami: '旨み成分：風味を豊かにし、食欲増進や満足感をもたらします。',
-    amino: 'アミノ酸：タンパク質の構成要素で、筋肉合成や代謝機能の維持に必要です。'
-  };
-
-  // 競合他社データ
-  const initialCompetitors = [
-    {
-      id: 1,
-      name: '競合A社',
-      feeds: [
-        { name: '配合飼料X', cost: 5200, nutritions: { protein: 19, fat: 3.5, fiber: 7, calcium: 1.2, umami: 2.0, amino: 15 } },
-        { name: '牧草Y', cost: 3200, nutritions: { protein: 13, fat: 2.5, fiber: 24, calcium: 0.6, umami: 1.0, amino: 10 } }
-      ]
-    },
-    {
-      id: 2,
-      name: '競合B社',
-      feeds: [
-        { name: '配合飼料Z', cost: 4800, nutritions: { protein: 17, fat: 4.5, fiber: 9, calcium: 0.9, umami: 3.0, amino: 13 } }
-      ]
-    }
-  ];
-  
-  // Feed data state
-  const [feeds, setFeeds] = useState(initialFeeds);
-  const [purchases, setPurchases] = useState(initialPurchases);
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
-  const [visibleNutritions, setVisibleNutritions] = useState({
-    protein: true,
-    fat: true,
-    fiber: true,
-    calcium: true,
-    umami: true,
-    amino: true
-  });
-  const [customNutritions, setCustomNutritions] = useState({});
-  const [eggData, setEggData] = useState({
-    eggCount: 5000,
-    eggPrice: 30
-  });
-  
-  // 競合他社データの状態
-  const [competitors, setCompetitors] = useState(initialCompetitors);
-  const [showCompetitors, setShowCompetitors] = useState(false);
-  const [selectedCompetitor, setSelectedCompetitor] = useState(1);
-  
-  // フィードのソート状態
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
-  
-  // 編集モード用の状態
-  const [editMode, setEditMode] = useState(false);
-  const [editFeedId, setEditFeedId] = useState(null);
-  const [editFeedForm, setEditFeedForm] = useState({
-    name: '',
-    cost: 0,
-    unit: 'kg',
-    nutritions: { protein: 0, fat: 0, fiber: 0, calcium: 0, umami: 0, amino: 0 }
-  });
-  
-  // 新しい栄養成分の追加用
-  const [newNutritionName, setNewNutritionName] = useState('');
-  
-  // Farm system state
-  const [flocks, setFlocks] = useState([
-    { id: 1, name: '鶏舎A', birdCount: 2500, ageWeeks: 42 },
-    { id: 2, name: '鶏舎B', birdCount: 3000, ageWeeks: 28 },
-    { id: 3, name: '鶏舎C', birdCount: 1800, ageWeeks: 60 }
   ]);
-  
-  // 鶏群の詳細データ
-  const [flockDetails, setFlockDetails] = useState([
-    { id: 1, flockId: 1, healthStatus: '良好', mortalityRate: 0.5, feedConversionRatio: 1.8, notes: '産卵率が平均より高い' },
-    { id: 2, flockId: 2, healthStatus: '良好', mortalityRate: 0.7, feedConversionRatio: 2.0, notes: '新しい飼料をテスト中' },
-    { id: 3, flockId: 3, healthStatus: '経過観察', mortalityRate: 1.2, feedConversionRatio: 2.2, notes: '高齢のため生産性が低下' }
-  ]);
-  
-  const [inventoryItems, setInventoryItems] = useState([
+
+  // Initial inventory data
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([
     { 
       id: 1, 
       name: '配合飼料A', 
       currentStock: 2800, 
       unit: 'kg', 
-      minLevel: 1000, 
-      optimalLevel: 3000, 
-      lastUpdated: '2025/03/20',
+      optimalLevel: 3000,
+      cost: 5000,
       dailyUsage: 250,
       daysRemaining: 11,
       status: 'normal'
@@ -122,9 +64,8 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
       name: '牧草', 
       currentStock: 850, 
       unit: 'kg', 
-      minLevel: 500, 
-      optimalLevel: 1500, 
-      lastUpdated: '2025/03/22',
+      optimalLevel: 1500,
+      cost: 3000,
       dailyUsage: 100,
       daysRemaining: 8,
       status: 'warning'
@@ -134,9 +75,8 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
       name: 'サイレージ', 
       currentStock: 3200, 
       unit: 'kg', 
-      minLevel: 1000, 
-      optimalLevel: 4000, 
-      lastUpdated: '2025/03/18',
+      optimalLevel: 4000,
+      cost: 2500,
       dailyUsage: 180,
       daysRemaining: 17,
       status: 'normal'
@@ -146,40 +86,47 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
       name: '大豆かす', 
       currentStock: 420, 
       unit: 'kg', 
-      minLevel: 500, 
-      optimalLevel: 1200, 
-      lastUpdated: '2025/03/23',
+      optimalLevel: 1200,
+      cost: 6500,
       dailyUsage: 50,
       daysRemaining: 8,
       status: 'critical'
     }
   ]);
-  
-  // 収益分析データ
-  const [revenueData, setRevenueData] = useState([
-    { month: '1月', eggs: 145000, meat: 28000, fertilizer: 12000, total: 185000 },
-    { month: '2月', eggs: 142000, meat: 26000, fertilizer: 11000, total: 179000 },
-    { month: '3月', eggs: 152000, meat: 30000, fertilizer: 13000, total: 195000 }
+
+  // Initial purchases data
+  const [purchases, setPurchases] = useState<any[]>([
+    { id: 101, feedId: 1, quantity: 500, feedingRatio: 20, purchaseDate: new Date(2025, 0, 15).toISOString().split('T')[0] },
+    { id: 102, feedId: 2, quantity: 300, feedingRatio: 30, purchaseDate: new Date(2025, 0, 20).toISOString().split('T')[0] },
+    { id: 103, feedId: 3, quantity: 800, feedingRatio: 40, purchaseDate: new Date(2025, 1, 10).toISOString().split('T')[0] },
+    { id: 104, feedId: 4, quantity: 200, feedingRatio: 10, purchaseDate: new Date(2025, 1, 20).toISOString().split('T')[0] }
   ]);
-  
-  const [annualGoals, setAnnualGoals] = useState({
-    revenue: 2400000,
-    profit: 720000,
-    productionIncrease: 8,
-    costReduction: 5
+
+  // Feed data state
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [eggData, setEggData] = useState<EggData>({
+    eggCount: 5000,
+    eggPrice: 30
   });
   
-  const [notifications, setNotifications] = useState([
-    { id: 1, type: 'system', message: '飼料使用量データが更新されました', date: '2025/03/26', read: false, createdAt: new Date().getTime() - 1000 * 60 * 5 },
-    { id: 2, type: 'inventory', message: '大豆かすの在庫が不足しています', date: '2025/03/25', read: false, createdAt: new Date().getTime() - 1000 * 60 * 60 },
-    { id: 3, type: 'production', message: '産卵率が2%向上しました', date: '2025/03/24', read: false, createdAt: new Date().getTime() - 1000 * 60 * 60 * 5 }
+  // Farm system state
+  const [flocks] = useState<Flock[]>([
+    { id: 1, name: '鶏舎A', birdCount: 2500, ageWeeks: 42 },
+    { id: 2, name: '鶏舎B', birdCount: 3000, ageWeeks: 28 },
+    { id: 3, name: '鶏舎C', birdCount: 1800, ageWeeks: 60 }
   ]);
-  
+
+  const [notifications, setNotifications] = useState<Notification[]>([
+    { id: 1, type: 'system', message: '飼料使用量データが更新されました', date: '2025/03/26', read: false },
+    { id: 2, type: 'inventory', message: '大豆かすの在庫が不足しています', date: '2025/03/25', read: false },
+    { id: 3, type: 'production', message: '産卵率が2%向上しました', date: '2025/03/24', read: false }
+  ]);
+
   const [showNotifications, setShowNotifications] = useState(false);
   const [lastSync, setLastSync] = useState(new Date().toISOString());
-  const [totalHens, setTotalHens] = useState(7300);
-  const [dailyEggProduction, setDailyEggProduction] = useState(6755);
-  const [feedRequirements, setFeedRequirements] = useState({
+  const [totalHens] = useState(7300);
+  const [dailyEggProduction] = useState(6755);
+  const [feedRequirements] = useState<FeedRequirements>({
     dailyUsage: {
       '配合飼料A': 250,
       '牧草': 100,
@@ -187,22 +134,22 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
       '大豆かす': 50
     }
   });
-  
+
   // Financial data
   const [currentMonthFeedCost, setCurrentMonthFeedCost] = useState(120000);
   const [projectedProfit, setProjectedProfit] = useState(30000);
   const [profitMargin, setProfitMargin] = useState(20.0);
-  
+
   // Feed distribution for charts
-  const [feedDistribution, setFeedDistribution] = useState([
+  const [feedDistribution, setFeedDistribution] = useState<FeedDistributionItem[]>([
     { name: '配合飼料A', value: 7500 },
     { name: '牧草', value: 3000 },
     { name: 'サイレージ', value: 5400 },
     { name: '大豆かす', value: 1500 }
   ]);
-  
+
   // Nutrition data
-  const [nutritionData, setNutritionData] = useState([
+  const [nutritionData, setNutritionData] = useState<NutritionDataItem[]>([
     { name: 'タンパク質', value: 18.5 },
     { name: '脂肪', value: 3.2 },
     { name: '繊維', value: 14.8 },
@@ -210,25 +157,24 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
     { name: '旨み成分', value: 2.3 },
     { name: 'アミノ酸', value: 15.2 }
   ]);
-  
+
   // UI states
-  const [activeTabs, setActiveTabs] = useState({
+  const [activeTabs, setActiveTabs] = useState<ActiveTabs>({
     poultry: 'economic',
-    inventory: 'inventory',
-    revenue: 'monthly'
+    inventory: 'inventory'
   });
-  
+
   // Months array
   const months = [
     '1月', '2月', '3月', '4月', '5月', '6月', 
     '7月', '8月', '9月', '10月', '11月', '12月'
   ];
-  
+
   // Initialize data on mount
   useEffect(() => {
     syncData();
   }, []);
-  
+
   // Synchronize data between systems
   const syncData = () => {
     // Update inventory based on feed requirements
@@ -240,10 +186,10 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
       const daysRemaining = Math.floor(item.currentStock / dailyUsage);
       
       // Update status
-      let status = 'normal';
-      if (item.currentStock <= item.minLevel * 0.5) {
+      let status: 'critical' | 'warning' | 'normal' = 'normal';
+      if (item.currentStock <= item.optimalLevel * 0.3) {
         status = 'critical';
-      } else if (item.currentStock <= item.minLevel) {
+      } else if (item.currentStock <= item.optimalLevel * 0.5) {
         status = 'warning';
       }
       
@@ -251,26 +197,23 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
         ...item,
         dailyUsage,
         daysRemaining,
-        status,
-        lastUpdated: new Date().toISOString().split('T')[0].replace(/-/g, '/')
+        status
       };
     });
     
     // Calculate monthly feed cost
     const daysInMonth = new Date(new Date().getFullYear(), currentMonth + 1, 0).getDate();
     const calculatedMonthFeedCost = updatedInventory.reduce((total, item) => {
-      return total + (item.dailyUsage * daysInMonth * 
-        (feeds.find(f => f.name === item.name)?.cost || 0));
+      return total + (item.dailyUsage * daysInMonth * item.cost);
     }, 0);
     
     // Create new notification
-    const newNotification = {
+    const newNotification: Notification = {
       id: Date.now(),
       type: 'system',
       message: 'データ同期が完了しました',
       date: new Date().toISOString().split('T')[0].replace(/-/g, '/'),
-      read: false,
-      createdAt: new Date().getTime()
+      read: false
     };
     
     // Update feed distribution
@@ -278,14 +221,6 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
       name,
       value: usage * daysInMonth
     }));
-    
-    // Calculate nutrition data from feed purchases
-    const monthPurchases = purchases.filter(purchase => {
-      const purchaseDate = new Date(purchase.purchaseDate);
-      return purchaseDate.getMonth() === currentMonth;
-    });
-    
-    const calculatedNutritionData = calculateNutritionData(monthPurchases);
     
     // Calculate financial projections
     const revenue = eggData.eggCount * eggData.eggPrice;
@@ -299,726 +234,621 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
     setShowNotifications(true);
     setCurrentMonthFeedCost(calculatedMonthFeedCost);
     setFeedDistribution(updatedFeedDistribution);
-    setNutritionData(calculatedNutritionData);
     setProjectedProfit(calculatedProfit);
     setProfitMargin(calculatedMargin);
   };
-  
-  // Calculate nutrition data from purchases
-  const calculateNutritionData = (monthPurchases) => {
-    if (monthPurchases.length === 0) {
-      return nutritionData; // Return existing data if no purchases
-    }
-    
-    // Calculate total weighted amounts
-    let totalWeightedWeight = 0;
-    monthPurchases.forEach(purchase => {
-      const ratio = purchase.feedingRatio || 100;
-      totalWeightedWeight += purchase.quantity * (ratio / 100);
-    });
-    
-    // Calculate nutritional values
-    const nutritions = {
-      protein: 0,
-      fat: 0,
-      fiber: 0,
-      calcium: 0,
-      umami: 0,
-      amino: 0
-    };
-    
-    monthPurchases.forEach(purchase => {
-      const feed = feeds.find(f => f.id === purchase.feedId);
-      if (feed) {
-        const ratio = purchase.feedingRatio || 100;
-        const weightedQuantity = purchase.quantity * (ratio / 100);
-        
-        Object.entries(feed.nutritions).forEach(([key, value]) => {
-          if (nutritions[key] !== undefined) {
-            nutritions[key] += (value * weightedQuantity / totalWeightedWeight);
-          }
-        });
-      }
-    });
-    
-    // Format for chart display
-    return Object.entries(nutritions)
-      .filter(([name]) => visibleNutritions[name])
-      .map(([name, value]) => {
-        let label;
-        switch(name) {
-          case 'protein': label = 'タンパク質'; break;
-          case 'fat': label = '脂肪'; break;
-          case 'fiber': label = '繊維'; break;
-          case 'calcium': label = 'カルシウム'; break;
-          case 'umami': label = '旨み成分'; break;
-          case 'amino': label = 'アミノ酸'; break;
-          default: label = customNutritions[name] || name;
-        }
-        return { name: label, value };
-      });
-  };
-  
+
   // Mark notification as read
-  const markAsRead = (notificationId: number) => {
+  const markAsRead = (id: number) => {
     setNotifications(
       notifications.map(notification => 
-        notification.id === notificationId ? { ...notification, read: true } : notification
+        notification.id === id ? { ...notification, read: true } : notification
       )
     );
   };
-  
+
   // Mark all notifications as read
   const markAllAsRead = () => {
     setNotifications(
       notifications.map(notification => ({ ...notification, read: true }))
     );
   };
-  
-  // 通知の切替
+
+  // Toggle notifications panel
   const toggleNotifications = () => {
-    console.log('Toggle notifications:', !showNotifications);
-    setShowNotifications(prevState => !prevState);
+    setShowNotifications(!showNotifications);
   };
-  
-  // Calculate egg cost
-  const calculateEggCost = () => {
-    if (!eggData.eggCount || eggData.eggCount <= 0) return 0;
-    return currentMonthFeedCost / eggData.eggCount;
-  };
-  
-  // Update month
+
+  // Set current month
   const setMonth = (monthIndex: number) => {
     setCurrentMonth(monthIndex);
-    
-    // Recalculate data for the new month
-    setTimeout(() => {
-      syncData();
-    }, 0);
   };
-  
-  // Add purchase
+
+  // Add a new purchase
   const addPurchase = (purchaseData: any) => {
     setPurchases([...purchases, { id: Date.now(), ...purchaseData }]);
-    
-    // Update related data
-    setTimeout(() => {
-      syncData();
-    }, 0);
   };
-  
-  // Delete purchase
+
+  // Delete a purchase
   const deletePurchase = (purchaseId: number) => {
     setPurchases(purchases.filter(p => p.id !== purchaseId));
-    
-    // Update related data
-    setTimeout(() => {
-      syncData();
-    }, 0);
   };
-  
-  // Add feed
-  const addFeed = (feedData: any) => {
-    const newFeed = {
-      id: Date.now(),
-      ...feedData
-    };
-    
-    setFeeds([...feeds, newFeed]);
-    return newFeed;
+
+  // Add a new feed
+  const addFeed = (feedData: Omit<Feed, 'id'>) => {
+    setFeeds([...feeds, { id: Date.now(), ...feedData }]);
   };
-  
-  // Update feed
-  const updateFeed = (feedId: number, feedData: any) => {
-    const updatedFeeds = feeds.map(feed => {
-      if (feed.id === feedId) {
-        return {
-          ...feed,
-          ...feedData
-        };
-      }
-      return feed;
-    });
-    
-    setFeeds(updatedFeeds);
+
+  // Update a feed
+  const updateFeed = (feedId: number, feedData: Omit<Feed, 'id'>) => {
+    setFeeds(
+      feeds.map(feed => 
+        feed.id === feedId ? { id: feedId, ...feedData } : feed
+      )
+    );
   };
-  
-  // Delete feed
+
+  // Delete a feed
   const deleteFeed = (feedId: number) => {
-    // Check if feed is used in purchases
-    const usedInPurchases = purchases.some(purchase => purchase.feedId === feedId);
+    // Check if feed is used in any purchase
+    const isUsed = purchases.some(p => p.feedId === feedId);
     
-    if (usedInPurchases) {
-      if (window.confirm('この飼料は購入記録で使用されています。削除すると関連する記録が正しく表示されなくなる可能性があります。削除しますか？')) {
-        setFeeds(feeds.filter(feed => feed.id !== feedId));
-        syncData();
-      }
+    if (isUsed) {
+      alert('この飼料は購入履歴で使用されているため削除できません');
+      return false;
     } else {
-      setFeeds(feeds.filter(feed => feed.id !== feedId));
-      syncData();
+      setFeeds(feeds.filter(f => f.id !== feedId));
+      return true;
     }
   };
-  
+
   // Update egg data
-  const updateEggData = (newEggData: any) => {
+  const updateEggData = (newEggData: EggData) => {
     setEggData(newEggData);
-    
-    // Update financial projections
-    setTimeout(() => {
-      syncData();
-    }, 0);
   };
-  
+
   // Update inventory item
-  const updateInventoryItem = (itemId: number, adjustment: any) => {
-    setInventoryItems(inventoryItems.map(item => {
-      if (item.id === itemId) {
-        const newStock = adjustment.type === 'add' 
-          ? item.currentStock + adjustment.quantity
-          : Math.max(0, item.currentStock - adjustment.quantity);
-        
-        // Calculate days remaining
-        const daysRemaining = item.dailyUsage > 0 ? Math.floor(newStock / item.dailyUsage) : 999;
-        
-        // Update status
-        let status = 'normal';
-        if (newStock <= item.minLevel * 0.5) {
-          status = 'critical';
-        } else if (newStock <= item.minLevel) {
-          status = 'warning';
+  const updateInventoryItem = (itemId: number, adjustment: InventoryAdjustment) => {
+    setInventoryItems(
+      inventoryItems.map(item => {
+        if (item.id === itemId) {
+          // Calculate new current stock
+          let newStock = item.currentStock;
+          
+          if (adjustment.type === 'add') {
+            newStock += adjustment.quantity;
+          } else if (adjustment.type === 'subtract') {
+            newStock = Math.max(0, newStock - adjustment.quantity);
+          } else if (adjustment.type === 'set') {
+            newStock = adjustment.quantity;
+          }
+          
+          // Recalculate days remaining
+          const daysRemaining = Math.floor(newStock / item.dailyUsage);
+          
+          // Update status
+          let status: 'critical' | 'warning' | 'normal' = 'normal';
+          if (newStock <= item.optimalLevel * 0.3) {
+            status = 'critical';
+          } else if (newStock <= item.optimalLevel * 0.5) {
+            status = 'warning';
+          }
+          
+          // Create notification if stock is low
+          if (status !== item.status && (status === 'warning' || status === 'critical')) {
+            const newNotification: Notification = {
+              id: Date.now(),
+              type: 'inventory',
+              message: `${item.name}の在庫が${status === 'critical' ? '危険' : '警告'}レベルに達しました`,
+              date: new Date().toISOString().split('T')[0].replace(/-/g, '/'),
+              read: false
+            };
+            setNotifications([newNotification, ...notifications]);
+          }
+          
+          return {
+            ...item,
+            currentStock: newStock,
+            daysRemaining,
+            status
+          };
         }
-        
-        return {
-          ...item,
-          currentStock: newStock,
-          lastUpdated: new Date().toISOString().split('T')[0].replace(/-/g, '/'),
-          daysRemaining,
-          status
-        };
-      }
-      return item;
-    }));
-    
-    // Add notification
-    const item = inventoryItems.find(i => i.id === itemId);
-    const newNotification = {
-      id: Date.now(),
-      type: 'inventory',
-      message: `${item?.name || '在庫'}を${adjustment.type === 'add' ? adjustment.quantity + '単位追加' : adjustment.quantity + '単位使用'}しました`,
-      date: new Date().toISOString().split('T')[0].replace(/-/g, '/'),
-      read: false,
-      createdAt: new Date().getTime()
-    };
-    
-    setNotifications([newNotification, ...notifications]);
-    
-    // Update related data
-    syncData();
+        return item;
+      })
+    );
   };
-  
-  // タブの変更
-  const changeTab = (tabSet, tabName) => {
-    console.log(`Changing tab: ${tabSet} to ${tabName}`);
-    setActiveTabs(prevTabs => ({
-      ...prevTabs,
-      [tabSet]: tabName
-    }));
-  };
-  
-  // Get monthly purchases
-  const getMonthlyPurchases = (monthIndex: number) => {
-    const year = new Date().getFullYear();
-    const startDate = new Date(year, monthIndex, 1);
-    const endDate = new Date(year, monthIndex + 1, 0);
-    
-    return purchases.filter(purchase => {
-      const purchaseDate = new Date(purchase.purchaseDate);
-      return purchaseDate >= startDate && purchaseDate <= endDate;
+
+  // Change active tab
+  const changeTab = (system: keyof ActiveTabs, tab: string) => {
+    setActiveTabs({
+      ...activeTabs,
+      [system]: tab
     });
   };
-  
-  // 月別の総コスト計算
-  const calculateTotalCost = (monthIndex) => {
-    const monthPurchases = getMonthlyPurchases(monthIndex);
+
+  // Calculate total cost for a given month
+  const calculateTotalCost = (monthIndex: number) => {
+    // Filter purchases for the specified month
+    const monthPurchases = purchases.filter(purchase => {
+      const purchaseDate = new Date(purchase.purchaseDate);
+      return purchaseDate.getMonth() === monthIndex;
+    });
+    
+    // Calculate total cost
     return monthPurchases.reduce((total, purchase) => {
       const feed = feeds.find(f => f.id === purchase.feedId);
-      const ratio = purchase.feedingRatio || 100;
-      return total + (feed ? (feed.cost * purchase.quantity / 1000) * (ratio / 100) : 0);
+      if (feed) {
+        return total + (feed.cost * purchase.quantity);
+      }
+      return total;
     }, 0);
   };
-  
-  // 各餌のコスト割合を計算
-  const calculateFeedCostPercentage = (monthIndex) => {
-    const monthPurchases = getMonthlyPurchases(monthIndex);
-    const totalCost = calculateTotalCost(monthIndex);
-    
-    if (totalCost === 0) return [];
-    
-    // 飼料ごとの総コストを計算
-    const feedCosts = {};
-    
+
+  // Get monthly purchases
+  const getMonthlyPurchases = (monthIndex: number) => {
+    return purchases.filter(purchase => {
+      const purchaseDate = new Date(purchase.purchaseDate);
+      return purchaseDate.getMonth() === monthIndex;
+    });
+  };
+
+  // Calculate nutritional contributions
+  const calculateNutritionData = (monthPurchases) => {
+    if (!monthPurchases || monthPurchases.length === 0) {
+      return [];
+    }
+
+    // Calculate weighted nutrition amounts
+    const totalWeightedNutritions = {};
+    let totalQuantity = 0;
+
     monthPurchases.forEach(purchase => {
       const feed = feeds.find(f => f.id === purchase.feedId);
       if (feed) {
-        const cost = feed.cost * purchase.quantity / 1000;
-        feedCosts[feed.id] = (feedCosts[feed.id] || 0) + cost;
+        const weightedQuantity = purchase.quantity * (purchase.feedingRatio / 100);
+        totalQuantity += weightedQuantity;
+
+        Object.entries(feed.nutritions).forEach(([key, value]) => {
+          if (!totalWeightedNutritions[key]) {
+            totalWeightedNutritions[key] = 0;
+          }
+          totalWeightedNutritions[key] += value * weightedQuantity;
+        });
       }
     });
-    
-    // パーセンテージに変換
-    return Object.entries(feedCosts).map(([feedId, cost]) => {
-      const feed = feeds.find(f => f.id === parseInt(feedId));
-      return {
-        name: feed ? feed.name : 'Unknown',
-        value: cost,
-        percentage: (cost / totalCost * 100).toFixed(1)
-      };
-    }).sort((a, b) => b.value - a.value);
-  };
-  
-  // 損益分岐点の計算
-  const calculateBreakEvenPoint = () => {
-    const totalCost = calculateTotalCost(currentMonth);
-    if (eggData.eggPrice <= 0) return 0;
-    return Math.ceil(totalCost / eggData.eggPrice);
-  };
-  
-  // 各飼料の栄養影響度を計算
-  const calculateNutritionContribution = () => {
-    const monthPurchases = getMonthlyPurchases(currentMonth);
-    if (monthPurchases.length === 0) return [];
-    
-    // 各飼料ごとに、各栄養素への寄与度を計算
-    const contributions = {};
-    const totalWeights = {};
-    
-    // 各栄養素の合計を計算
-    const nutritionTotals = {};
-    
-    // 表示する栄養素のみを対象にする
-    const activeNutritions = Object.keys(visibleNutritions).filter(key => visibleNutritions[key]);
-    
-    // 各購入に対して処理
-    monthPurchases.forEach(purchase => {
-      const feed = feeds.find(f => f.id === purchase.feedId);
-      if (!feed) return;
-      
-      if (!contributions[feed.id]) {
-        contributions[feed.id] = {
-          name: feed.name,
-          values: {}
-        };
-      }
-      
-      // 各栄養素に対して処理
-      activeNutritions.forEach(nutritionKey => {
-        if (feed.nutritions[nutritionKey] !== undefined) {
-          // この購入で追加される栄養量
-          const amount = feed.nutritions[nutritionKey] * purchase.quantity;
-          
-          // 累計に加算
-          contributions[feed.id].values[nutritionKey] = (contributions[feed.id].values[nutritionKey] || 0) + amount;
-          
-          // 全体の合計に加算
-          nutritionTotals[nutritionKey] = (nutritionTotals[nutritionKey] || 0) + amount;
-        }
-      });
-      
-      // 総重量を記録
-      totalWeights[feed.id] = (totalWeights[feed.id] || 0) + purchase.quantity;
-    });
-    
-    // パーセンテージに変換
-    const result = [];
-    Object.entries(contributions).forEach(([feedId, data]) => {
-      const contribution = { name: data.name };
-      
-      activeNutritions.forEach(nutritionKey => {
-        if (nutritionTotals[nutritionKey] > 0) {
-          contribution[nutritionKey] = (data.values[nutritionKey] / nutritionTotals[nutritionKey] * 100).toFixed(1);
-        } else {
-          contribution[nutritionKey] = 0;
-        }
-      });
-      
-      result.push(contribution);
-    });
-    
-    return result;
-  };
-  
-  // フィードのソート処理を行う関数
-  const sortFeeds = (key) => {
-    let direction = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
-    }
-    setSortConfig({ key, direction });
-  };
-  
-  // ソートされたフィードリストを生成
-  const getSortedFeeds = () => {
-    const sortableFeeds = [...feeds];
-    if (sortConfig.key !== null) {
-      sortableFeeds.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === 'ascending' ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === 'ascending' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    return sortableFeeds;
-  };
-  
-  // 栄養成分の日本語名取得
-  const getNutritionLabel = (key) => {
-    switch(key) {
-      case 'protein': return 'タンパク質';
-      case 'fat': return '脂肪';
-      case 'fiber': return '繊維';
-      case 'calcium': return 'カルシウム';
-      case 'umami': return '旨み成分';
-      case 'amino': return 'アミノ酸';
-      default: return customNutritions[key] || key;
-    }
-  };
-  
-  // 栄養成分の追加
-  const addCustomNutrition = (name) => {
-    if (!name.trim()) return;
-    
-    const nutritionKey = name.toLowerCase().replace(/\s+/g, '_');
-    
-    if (Object.keys(visibleNutritions).includes(nutritionKey)) {
-      return false; // 既に存在する
-    }
-    
-    // 栄養成分を追加
-    setCustomNutritions({
-      ...customNutritions,
-      [nutritionKey]: name
-    });
-    
-    // 表示状態を更新
-    setVisibleNutritions({
-      ...visibleNutritions,
-      [nutritionKey]: true
-    });
-    
-    // すべての飼料に新しい栄養成分を0で追加
-    const updatedFeeds = feeds.map(feed => ({
-      ...feed,
-      nutritions: { ...feed.nutritions, [nutritionKey]: 0 }
+
+    // Format for chart display
+    return Object.entries(totalWeightedNutritions).map(([key, value]) => ({
+      name: key === 'protein' ? 'タンパク質' :
+            key === 'fat' ? '脂肪' :
+            key === 'fiber' ? '繊維' :
+            key === 'calcium' ? 'カルシウム' :
+            key === 'umami' ? '旨み成分' :
+            key === 'amino' ? 'アミノ酸' : key,
+      value: totalQuantity > 0 ? (value as number) / totalQuantity : 0
     }));
-    
-    setFeeds(updatedFeeds);
-    setNewNutritionName('');
-    return true;
   };
-  
-  // 栄養成分の表示切替
-  const toggleNutritionVisibility = (key) => {
+
+  // Get visible nutrition entries
+  const [visibleNutritions, setVisibleNutritions] = useState({
+    protein: true,
+    fat: true,
+    fiber: true,
+    calcium: true,
+    umami: true,
+    amino: true
+  });
+
+  // Toggle nutrition visibility
+  const toggleNutritionVisibility = (key: string) => {
     setVisibleNutritions({
       ...visibleNutritions,
       [key]: !visibleNutritions[key]
     });
   };
-  
-  // 栄養成分の削除
-  const deleteNutrition = (key) => {
-    // カスタム栄養成分のみ削除可能
-    if (Object.keys(nutritionBenefits).includes(key)) {
-      return false; // 基本栄養成分は削除不可
+
+  // Add custom nutrition
+  const [newNutritionName, setNewNutritionName] = useState('');
+  const [customNutritions, setCustomNutritions] = useState<string[]>([]);
+
+  const addCustomNutrition = (name: string) => {
+    // Convert to camelCase for use as a key
+    const key = name.toLowerCase().replace(/\s+/g, '_');
+    
+    // Add to custom nutritions list
+    setCustomNutritions([...customNutritions, key]);
+    
+    // Make it visible
+    setVisibleNutritions({
+      ...visibleNutritions,
+      [key]: true
+    });
+    
+    // Add empty value to all feeds
+    setFeeds(
+      feeds.map(feed => ({
+        ...feed,
+        nutritions: {
+          ...feed.nutritions,
+          [key]: 0
+        }
+      }))
+    );
+    
+    // Reset input
+    setNewNutritionName('');
+  };
+
+  // Get nutrition label
+  const getNutritionLabel = (key: string) => {
+    const labels = {
+      protein: 'タンパク質',
+      fat: '脂肪',
+      fiber: '繊維',
+      calcium: 'カルシウム',
+      umami: '旨み成分',
+      amino: 'アミノ酸'
+    };
+    
+    return labels[key] || key.replace(/_/g, ' ');
+  };
+
+  // Delete custom nutrition
+  const deleteNutrition = (key: string) => {
+    // Only allow deleting custom nutritions, not basic ones
+    const basicNutritions = ['protein', 'fat', 'fiber', 'calcium', 'umami', 'amino'];
+    if (basicNutritions.includes(key)) {
+      return;
     }
     
-    // カスタム栄養成分から削除
-    const newCustomNutritions = { ...customNutritions };
-    delete newCustomNutritions[key];
-    setCustomNutritions(newCustomNutritions);
+    // Remove from custom list
+    setCustomNutritions(customNutritions.filter(n => n !== key));
     
-    // 表示状態から削除
+    // Remove from visible list
     const newVisibleNutritions = { ...visibleNutritions };
     delete newVisibleNutritions[key];
     setVisibleNutritions(newVisibleNutritions);
     
-    // すべての飼料から該当栄養成分を削除
-    const updatedFeeds = feeds.map(feed => {
-      const newNutritions = { ...feed.nutritions };
-      delete newNutritions[key];
-      return {
-        ...feed,
-        nutritions: newNutritions
-      };
+    // Remove from all feeds
+    setFeeds(
+      feeds.map(feed => {
+        const newNutritions = { ...feed.nutritions };
+        delete newNutritions[key];
+        return {
+          ...feed,
+          nutritions: newNutritions
+        };
+      })
+    );
+  };
+
+  // Sort function for feeds
+  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'ascending' });
+
+  const sortFeeds = (key: string) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    
+    setSortConfig({ key, direction });
+  };
+
+  // Get sorted feeds
+  const getSortedFeeds = () => {
+    return [...feeds].sort((a, b) => {
+      if (sortConfig.key === 'name') {
+        if (a.name < b.name) {
+          return sortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (a.name > b.name) {
+          return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
+      } else if (sortConfig.key === 'cost') {
+        if (a.cost < b.cost) {
+          return sortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (a.cost > b.cost) {
+          return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
+      }
+      return 0;
+    });
+  };
+
+  // Nutrition benefits info
+  const [showNutritionInfo, setShowNutritionInfo] = useState(false);
+  const nutritionBenefits = {
+    protein: 'タンパク質は筋肉の成長と修復を助け、免疫システムをサポートします。',
+    fat: '適切な量の脂肪は、エネルギー源として必要で、脂溶性ビタミンの吸収を助けます。',
+    fiber: '繊維質は、健康的な消化と腸内環境の維持に重要です。',
+    calcium: 'カルシウムは、強い骨格の形成と卵殻の品質向上に不可欠です。',
+    umami: '旨み成分は、飼料の風味を向上させ、鶏の摂食行動を促進します。',
+    amino: 'アミノ酸は、タンパク質の構成要素で、鶏の成長と発育に重要です。'
+  };
+
+  // Get nutrition contribution data
+  const calculateNutritionContribution = (monthIndex: number) => {
+    const monthPurchases = getMonthlyPurchases(monthIndex);
+    if (!monthPurchases || monthPurchases.length === 0) {
+      return [];
+    }
+    
+    // Group purchases by feed
+    const feedContributions = {};
+    let totalWeight = 0;
+    
+    // Calculate total weight and group by feed
+    monthPurchases.forEach(purchase => {
+      const feed = feeds.find(f => f.id === purchase.feedId);
+      if (feed) {
+        const weight = purchase.quantity * (purchase.feedingRatio / 100);
+        totalWeight += weight;
+        
+        if (!feedContributions[feed.id]) {
+          feedContributions[feed.id] = {
+            name: feed.name,
+            weight: 0,
+            nutritions: {}
+          };
+        }
+        
+        feedContributions[feed.id].weight += weight;
+      }
     });
     
-    setFeeds(updatedFeeds);
-    return true;
+    // Calculate percentage contribution for each nutrition
+    Object.values(feedContributions).forEach((contribution: any) => {
+      const feed = feeds.find(f => f.name === contribution.name);
+      if (feed) {
+        Object.entries(feed.nutritions)
+          .filter(([key]) => visibleNutritions[key])
+          .forEach(([key, value]) => {
+            contribution[key] = Math.round((value * contribution.weight / totalWeight) * 10) / 10;
+          });
+      }
+    });
+    
+    return Object.values(feedContributions);
   };
+
+  // Download data as CSV
+  const downloadFeedsAsCSV = () => {
+    const headers = ['ID', '飼料名', '単価', '単位'];
+    const nutritionKeys = Object.keys(visibleNutritions).filter(key => visibleNutritions[key]);
+    nutritionKeys.forEach(key => headers.push(getNutritionLabel(key)));
+    
+    const rows = feeds.map(feed => {
+      const row = [feed.id, feed.name, feed.cost, feed.unit];
+      nutritionKeys.forEach(key => row.push(feed.nutritions[key] || 0));
+      return row;
+    });
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', '飼料データ.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Download purchases as CSV
+  const downloadPurchasesAsCSV = () => {
+    const headers = ['ID', '飼料名', '数量', '配合比率', '購入日', 'コスト'];
+    
+    const rows = purchases.map(purchase => {
+      const feed = feeds.find(f => f.id === purchase.feedId);
+      const feedName = feed ? feed.name : '不明';
+      const cost = feed ? feed.cost * purchase.quantity : 0;
+      
+      return [
+        purchase.id,
+        feedName,
+        purchase.quantity,
+        purchase.feedingRatio,
+        purchase.purchaseDate,
+        cost
+      ];
+    });
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', '購入履歴.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Download nutrition data as CSV
+  const downloadNutritionDataAsCSV = () => {
+    const nutritionData = calculateNutritionData(getMonthlyPurchases(currentMonth));
+    
+    const headers = ['栄養成分', '含有率(%)'];
+    const rows = nutritionData.map(item => [item.name, item.value]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', '栄養成分データ.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Download all data as JSON
+  const downloadAllDataAsJSON = () => {
+    const allData = {
+      lastSync,
+      feeds,
+      purchases,
+      inventoryItems,
+      eggData,
+      flocks,
+      notifications,
+      customNutritions,
+      visibleNutritions
+    };
+    
+    const jsonContent = JSON.stringify(allData, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', '養鶏管理データ.json');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Competitor analysis data
+  const [showCompetitors, setShowCompetitors] = useState(false);
+  const [selectedCompetitor, setSelectedCompetitor] = useState('comp1');
   
-  // 競合他社表示の切替
+  // Toggle competitors view
   const toggleCompetitorsView = () => {
     setShowCompetitors(!showCompetitors);
   };
   
-  // 鶏群の更新
-  const updateFlock = (flockId, data) => {
-    const updatedFlocks = flocks.map(flock => {
-      if (flock.id === flockId) {
-        return { ...flock, ...data };
-      }
-      return flock;
-    });
-    
-    setFlocks(updatedFlocks);
-  };
-  
-  // 鶏群の詳細情報を取得
-  const getFlockDetail = (flockId) => {
-    return flockDetails.find(detail => detail.flockId === flockId);
-  };
-  
-  // 鶏群詳細の更新
-  const updateFlockDetail = (detailId, data) => {
-    const updatedDetails = flockDetails.map(detail => {
-      if (detail.id === detailId) {
-        return { ...detail, ...data };
-      }
-      return detail;
-    });
-    
-    setFlockDetails(updatedDetails);
-  };
-  
-  // ファイルをダウンロードするヘルパー関数
-  const downloadFile = (content, fileName, contentType) => {
-    if (typeof window !== 'undefined') {
-      const blob = new Blob([content], { type: contentType });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      a.click();
-      URL.revokeObjectURL(url);
+  // Competitor data
+  const competitors = [
+    {
+      id: 'comp1',
+      name: 'A社',
+      feeds: [
+        { 
+          name: 'プレミアム配合飼料',
+          cost: 5200,
+          nutritions: { protein: 19, fat: 4.5, fiber: 7.5, calcium: 1.1, umami: 2.2, amino: 15 }
+        },
+        { 
+          name: '有機牧草',
+          cost: 3300,
+          nutritions: { protein: 13, fat: 2.2, fiber: 23, calcium: 0.6, umami: 1.3, amino: 9.5 }
+        }
+      ]
+    },
+    {
+      id: 'comp2',
+      name: 'B社',
+      feeds: [
+        { 
+          name: 'エコノミー配合飼料',
+          cost: 4800,
+          nutritions: { protein: 17, fat: 3.8, fiber: 8.2, calcium: 0.9, umami: 2.0, amino: 13 }
+        },
+        { 
+          name: '輸入牧草',
+          cost: 2800,
+          nutritions: { protein: 11, fat: 1.8, fiber: 21, calcium: 0.45, umami: 1.0, amino: 8.5 }
+        }
+      ]
     }
-  };
-  
-  // 飼料データをCSVでダウンロード
-  const downloadFeedsAsCSV = () => {
-    // ヘッダー行の作成
-    let csv = '飼料ID,飼料名,コスト,単位,タンパク質(%),脂肪(%),繊維(%),カルシウム(%),旨み成分(%),アミノ酸(%)\n';
-    
-    // データ行の追加
-    feeds.forEach(feed => {
-      const { id, name, cost, unit, nutritions } = feed;
-      const row = [
-        id,
-        name,
-        cost,
-        unit,
-        nutritions.protein || 0,
-        nutritions.fat || 0,
-        nutritions.fiber || 0,
-        nutritions.calcium || 0,
-        nutritions.umami || 0,
-        nutritions.amino || 0
-      ].join(',');
-      csv += row + '\n';
-    });
-    
-    // CSVファイルとしてダウンロード
-    downloadFile(csv, '飼料データ.csv', 'text/csv');
-  };
-  
-  // 購入履歴をCSVでダウンロード
-  const downloadPurchasesAsCSV = () => {
-    // ヘッダー行の作成
-    let csv = '購入ID,飼料ID,飼料名,数量(kg),単価(円/kg),合計(円),購入日\n';
-    
-    // データ行の追加
-    purchases.forEach(purchase => {
-      const { id, feedId, quantity, purchaseDate } = purchase;
-      const feed = feeds.find(f => f.id === feedId);
-      if (feed) {
-        const cost = feed.cost;
-        const total = cost * quantity;
-        const row = [
-          id,
-          feedId,
-          feed.name,
-          quantity,
-          cost,
-          total,
-          purchaseDate
-        ].join(',');
-        csv += row + '\n';
-      }
-    });
-    
-    // CSVファイルとしてダウンロード
-    downloadFile(csv, '購入履歴.csv', 'text/csv');
-  };
-  
-  // すべてのデータをJSONでダウンロード（バックアップ用）
-  const downloadAllDataAsJSON = () => {
-    const data = { 
-      feeds, 
-      purchases, 
-      eggData,
-      inventoryItems,
-      flocks,
-      flockDetails,
-      revenueData
-    };
-    const json = JSON.stringify(data, null, 2);
-    downloadFile(json, '養鶏管理データ.json', 'application/json');
-  };
-  
-  // 月別の栄養成分データをCSVでダウンロード
-  const downloadNutritionDataAsCSV = () => {
-    // ヘッダー行の作成
-    let csv = '月,タンパク質(%),脂肪(%),繊維(%),カルシウム(%),旨み成分(%),アミノ酸(%),総コスト(円)\n';
-    
-    // 各月のデータを追加
-    months.forEach((month, index) => {
-      const nutritions = calculateNutritions(index);
-      const cost = calculateTotalCost(index);
-      
-      const row = [
-        month,
-        nutritions.protein || 0,
-        nutritions.fat || 0,
-        nutritions.fiber || 0,
-        nutritions.calcium || 0,
-        nutritions.umami || 0,
-        nutritions.amino || 0,
-        cost
-      ].join(',');
-      
-      csv += row + '\n';
-    });
-    
-    // CSVファイルとしてダウンロード
-    downloadFile(csv, '月別栄養成分データ.csv', 'text/csv');
-  };
-  
-  // 各栄養成分の計算
-  const calculateNutritions = (monthIndex) => {
-    const monthPurchases = getMonthlyPurchases(monthIndex);
-    const totalWeight = monthPurchases.reduce((total, purchase) => total + purchase.quantity, 0);
-    
-    if (totalWeight === 0) return {};
-    
-    const nutritions = {};
-    
-    monthPurchases.forEach(purchase => {
-      const feed = feeds.find(f => f.id === purchase.feedId);
-      if (feed) {
-        Object.entries(feed.nutritions).forEach(([key, value]) => {
-          nutritions[key] = (nutritions[key] || 0) + (value * purchase.quantity / totalWeight);
-        });
-      }
-    });
-    
-    // 小数点第2位で四捨五入
-    Object.keys(nutritions).forEach(key => {
-      nutritions[key] = Math.round(nutritions[key] * 100) / 100;
-    });
-    
-    return nutritions;
-  };
-  
-  // 収益目標の更新
-  const updateAnnualGoals = (goals) => {
-    setAnnualGoals(goals);
-  };
-  
-  // コンテキスト値
-  const value = {
-    // データ
-    COLORS,
-    feeds,
-    purchases,
-    flocks,
-    flockDetails,
-    inventoryItems,
-    nutritionData,
-    feedDistribution,
-    notifications,
-    eggData,
-    revenueData,
-    annualGoals,
-    competitors,
-    visibleNutritions,
-    customNutritions,
-    nutritionBenefits,
-    
-    // UI状態
-    currentMonth,
-    showNotifications,
-    activeTabs,
-    totalHens,
-    dailyEggProduction,
-    currentMonthFeedCost,
-    projectedProfit,
-    profitMargin,
-    showCompetitors,
-    selectedCompetitor,
-    sortConfig,
-    editMode,
-    editFeedId,
-    editFeedForm,
-    newNutritionName,
-    months,
-    
-    // 関数
-    setCurrentMonth,
-    getMonthlyPurchases,
-    calculateTotalCost,
-    calculateFeedCostPercentage,
-    calculateEggCost,
-    calculateBreakEvenPoint,
-    calculateNutritionContribution,
-    syncData,
-    toggleNotifications,
-    markAsRead,
-    markAllAsRead,
-    changeTab,
-    addFeed,
-    updateFeed,
-    deleteFeed,
-    addPurchase,
-    deletePurchase,
-    updateInventoryItem,
-    updateFlock,
-    getFlockDetail,
-    updateFlockDetail,
-    updateAnnualGoals,
-    getNutritionLabel,
-    toggleNutritionVisibility,
-    addCustomNutrition,
-    deleteNutrition,
-    setNewNutritionName,
-    sortFeeds,
-    getSortedFeeds,
-    toggleCompetitorsView,
-    setSelectedCompetitor,
-    updateEggData,
-    setEditMode,
-    setEditFeedId,
-    setEditFeedForm,
-    
-    // データエクスポート
-    downloadFeedsAsCSV,
-    downloadPurchasesAsCSV,
-    downloadAllDataAsJSON,
-    downloadNutritionDataAsCSV
-  };
-  
+  ];
+
+  // Calculate monthly nutrition contribution data
+  const nutritionContributionData = calculateNutritionContribution(currentMonth);
+
   return (
-    <FarmContext.Provider value={value}>
+    <FarmContext.Provider value={{
+      userId,
+      feeds,
+      setFeeds,
+      addFeed,
+      updateFeed,
+      deleteFeed,
+      sortFeeds,
+      sortConfig,
+      getSortedFeeds,
+      
+      purchases,
+      setPurchases,
+      addPurchase,
+      deletePurchase,
+      getMonthlyPurchases,
+      
+      inventoryItems,
+      setInventoryItems,
+      updateInventoryItem,
+      
+      months,
+      currentMonth,
+      setMonth,
+      
+      eggData,
+      updateEggData,
+      
+      flocks,
+      
+      notifications,
+      showNotifications,
+      toggleNotifications,
+      markAsRead,
+      markAllAsRead,
+      
+      syncData,
+      lastSync,
+      
+      totalHens,
+      dailyEggProduction,
+      
+      feedRequirements,
+      
+      currentMonthFeedCost,
+      projectedProfit,
+      profitMargin,
+      
+      feedDistribution,
+      nutritionData,
+      nutritionContributionData,
+      calculateNutritionData,
+      
+      activeTabs,
+      changeTab,
+      
+      calculateTotalCost,
+      
+      visibleNutritions,
+      toggleNutritionVisibility,
+      newNutritionName,
+      setNewNutritionName,
+      addCustomNutrition,
+      customNutritions,
+      getNutritionLabel,
+      deleteNutrition,
+      
+      showNutritionInfo,
+      setShowNutritionInfo,
+      nutritionBenefits,
+      
+      downloadFeedsAsCSV,
+      downloadPurchasesAsCSV,
+      downloadNutritionDataAsCSV,
+      downloadAllDataAsJSON,
+      
+      showCompetitors,
+      selectedCompetitor,
+      setSelectedCompetitor,
+      toggleCompetitorsView,
+      competitors,
+      
+      COLORS
+    }}>
       {children}
     </FarmContext.Provider>
   );
