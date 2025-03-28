@@ -1095,7 +1095,7 @@ const FeedCalculator: React.FC = () => {
                 variant="outlined"
                 color="primary"
                 startIcon={<SyncIcon />}
-                onClick={() => confirm('データを同期しますか？') && syncData()}
+                onClick={() => window.confirm('データを同期しますか？') && syncData()}
               >
                 データを最新の状態に同期
               </Button>
