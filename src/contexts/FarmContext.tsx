@@ -544,17 +544,6 @@ export function FarmProvider({ children }: { children: React.ReactNode }) {
     }, 0);
   };
   
-  // 月別の飼料購入データを取得
-  const getMonthlyPurchases = (monthIndex) => {
-    const year = new Date().getFullYear();
-    const startDate = new Date(year, monthIndex, 1);
-    const endDate = new Date(year, monthIndex + 1, 0);
-    
-    return purchases.filter(purchase => {
-      const purchaseDate = new Date(purchase.purchaseDate);
-      return purchaseDate >= startDate && purchaseDate <= endDate;
-    });
-  };
   
   // Calculate nutrition data from purchases
   const calculateNutritionData = (monthPurchases) => {
