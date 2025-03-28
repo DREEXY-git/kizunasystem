@@ -9,3 +9,9 @@
   TSC_COMPILE_ON_ERROR = "true"
   DISABLE_ESLINT_PLUGIN = "true"
   SKIP_PREFLIGHT_CHECK = "true"
+
+# SPAリダイレクトの設定 - すべてのURLをindex.htmlにリダイレクト
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
