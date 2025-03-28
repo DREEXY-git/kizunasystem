@@ -37,7 +37,10 @@ const IntegratedFarmApp: React.FC = () => {
           <Typography variant="h6" className="flex-grow">
             養鶏管理システム
           </Typography>
-          <IconButton color="inherit" onClick={toggleNotifications}>
+          <IconButton color="inherit" onClick={() => {
+            console.log('Toggle notifications clicked');
+            toggleNotifications();
+          }}>
             <Badge badgeContent={unreadCount} color="secondary">
               <NotificationsIcon />
             </Badge>

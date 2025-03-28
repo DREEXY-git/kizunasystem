@@ -90,7 +90,6 @@ const FarmSystem: React.FC = () => {
   } = useContext(FarmContext);
 
   const [tabValue, setTabValue] = useState(0);
-  const [activeRevenueTab, setActiveRevenueTab] = useState(0);
   const [openFlockDialog, setOpenFlockDialog] = useState(false);
   const [selectedFlock, setSelectedFlock] = useState<any>(null);
   const [newFlock, setNewFlock] = useState({
@@ -128,22 +127,16 @@ const FarmSystem: React.FC = () => {
   };
 
   const handleSaveFlock = () => {
-  if (selectedFlock) {
-    updateFlock(selectedFlock.id, newFlock);
-  } else {
-    addFlock(newFlock);
-  }
-  handleCloseFlockDialog();
-  // データ再同期
-  syncData();
-};
+    // TODO: Implement flock save functionality
+    handleCloseFlockDialog();
+  };
 
   // 在庫データのグラフ用データ
   const inventoryData = inventoryItems.map(item => ({
     name: item.name,
     currentStock: item.currentStock,
-    minStock: item.minStock,
-    optimalStock: item.optimalStock
+    minLevel: item.minLevel,
+    optimalLevel: item.optimalLevel
   }));
 
   return (
@@ -318,8 +311,8 @@ const FarmSystem: React.FC = () => {
                   <ChartTooltip />
                   <Legend />
                   <Bar dataKey="currentStock" fill="#8884d8" name="現在の在庫" />
-                  <Bar dataKey="minStock" fill="#ff7300" name="最小在庫" />
-                  <Bar dataKey="optimalStock" fill="#387908" name="適正在庫" />
+                  <Bar dataKey="minLevel" fill="#ff7300" name="最小在庫" />
+                  <Bar dataKey="optimalLevel" fill="#387908" name="適正在庫" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -342,8 +335,8 @@ const FarmSystem: React.FC = () => {
                   <TableRow key={item.id}>
                     <TableCell>{item.name}</TableCell>
                     <TableCell align="right">{item.currentStock}{item.unit}</TableCell>
-                    <TableCell align="right">{item.minStock}{item.unit}</TableCell>
-                    <TableCell align="right">{item.optimalStock}{item.unit}</TableCell>
+                    <TableCell align="right">{item.minLevel}{item.unit}</TableCell>
+                    <TableCell align="right">{item.optimalLevel}{item.unit}</TableCell>
                     <TableCell align="right">{item.daysRemaining}日</TableCell>
                     <TableCell align="right">
                       <span className={`px-2 py-1 rounded ${
@@ -383,7 +376,10 @@ const FarmSystem: React.FC = () => {
                 <Button
                   variant="outlined"
                   color="primary"
-                  onClick={() => changeTab('revenue', 'monthly')}
+                  onClick={() => {
+                    console.log('Switching to monthly revenue tab');
+                    changeTab('revenue', 'monthly');
+                  }}
                   className={activeTabs.revenue === 'monthly' ? 'bg-blue-50' : ''}
                 >
                   月次
@@ -391,7 +387,10 @@ const FarmSystem: React.FC = () => {
                 <Button
                   variant="outlined"
                   color="primary"
-                  onClick={() => changeTab('revenue', 'annual')}
+                  onClick={() => {
+                    console.log('Switching to annual revenue tab');
+                    changeTab('revenue', 'annual');
+                  }}
                   className={activeTabs.revenue === 'annual' ? 'bg-blue-50' : ''}
                 >
                   年次
@@ -399,7 +398,10 @@ const FarmSystem: React.FC = () => {
                 <Button
                   variant="outlined"
                   color="primary"
-                  onClick={() => changeTab('revenue', 'forecast')}
+                  onClick={() => {
+                    console.log('Switching to forecast revenue tab');
+                    changeTab('revenue', 'forecast');
+                  }}
                   className={activeTabs.revenue === 'forecast' ? 'bg-blue-50' : ''}
                 >
                   予測
