@@ -1,103 +1,115 @@
-import React, { useContext } from 'react';
-import { FarmContext } from '../contexts/FarmContext';
-import {
-  Container,
-  Grid,
-  Paper,
-  Typography,
-  Card,
-  CardContent,
+import React, { useContext, useEffect } from 'react';
+import { 
+  Container, 
+  Grid, 
+  Paper, 
+  Typography, 
   List,
   ListItem,
-  ListItemText,
   ListItemIcon,
-  Divider
+  ListItemText,
+  Chip,
+  Card,
+  CardContent,
+  Box
 } from '@material-ui/core';
-import {
-  TrendingUp as TrendingUpIcon,
-  Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon,
-  Pets as PetsIcon,
-  Storage as StorageIcon,
-  AttachMoney as AttachMoneyIcon
-} from '@material-ui/icons';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
-} from 'recharts';
+import { Warning as WarningIcon, Error as ErrorIcon, CheckCircle as CheckCircleIcon } from '@material-ui/icons';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { FarmContext } from '../contexts/FarmContext';
+
+// カラー設定
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+const STATUS_COLORS = {
+  critical: '#f44336',
+  warning: '#ff9800',
+  normal: '#4caf50'
+};
 
 const Dashboard: React.FC = () => {
   const {
-    totalHens,
-    dailyEggProduction,
-    currentMonthFeedCost,
-    projectedProfit,
-    profitMargin,
+    flocks,
+    feeds,
+    inventoryItems,
+    eggData,
     feedDistribution,
     nutritionData,
-    inventoryItems,
-    COLORS
+    calculateTotalCost,
+    calculateEggProfit,
+    calculateProfitMargin,
+    currentMonth
   } = useContext(FarmContext);
 
+  // 合計鶏数を計算
+  const totalHens = flocks.reduce((sum, flock) => sum + flock.birdCount, 0);
+  
+  // 日々の卵生産量（推定）
+  const dailyEggProduction = Math.round(totalHens * 0.8); // 80%の産卵率と仮定
+  
+  // 現在月の飼料コスト
+  const currentMonthFeedCost = calculateTotalCost(currentMonth);
+  
+  // 予測利益
+  const projectedProfit = calculateEggProfit();
+  
+  // 利益率
+  const profitMargin = calculateProfitMargin();
+
+  // クリティカルおよび警告アイテム
   const criticalItems = inventoryItems.filter(item => item.status === 'critical');
   const warningItems = inventoryItems.filter(item => item.status === 'warning');
+  const normalItems = inventoryItems.length - criticalItems.length - warningItems.length;
 
   return (
-    <Container maxWidth="lg" className="mt-4">
-      <Grid container spacing={3}>
-        {/* サマリーカード */}
-        <Grid item xs={12} md={3}>
+    <Container>
+      <Typography variant="h4" gutterBottom style={{ marginTop: 20, marginBottom: 20 }}>
+        養鶏場ダッシュボード
+      </Typography>
+      
+      {/* サマリーカード */}
+      <Grid container spacing={3} style={{ marginBottom: 24 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
-                総鶏数
+                合計鶏数
               </Typography>
-              <Typography variant="h4">
-                {totalHens.toLocaleString()}羽
+              <Typography variant="h5" component="div">
+                {totalHens.toLocaleString()} 羽
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
-                日次産卵数
+                日産卵数
               </Typography>
-              <Typography variant="h4">
-                {dailyEggProduction.toLocaleString()}個
+              <Typography variant="h5" component="div">
+                {dailyEggProduction.toLocaleString()} 個
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
                 今月の飼料コスト
               </Typography>
-              <Typography variant="h4">
+              <Typography variant="h5" component="div">
                 ¥{currentMonthFeedCost.toLocaleString()}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
-                予想利益
+                予測利益
               </Typography>
-              <Typography variant="h4">
+              <Typography variant="h5" component="div" style={{color: projectedProfit >= 0 ? 'green' : 'red'}}>
                 ¥{projectedProfit.toLocaleString()}
               </Typography>
               <Typography variant="body2" color="textSecondary">
@@ -106,92 +118,127 @@ const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
+      </Grid>
 
-        {/* グラフ */}
-        <Grid item xs={12} md={6}>
-          <Paper className="p-4">
-            <Typography variant="h6" gutterBottom>
-              飼料配分
-            </Typography>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={feedDistribution}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label
-                  >
-                    {feedDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </Paper>
+      <Grid container spacing={3}>
+        {/* 左側: グラフセクション */}
+        <Grid item xs={12} md={8}>
+          <Grid container spacing={3}>
+            {/* 飼料分布グラフ */}
+            <Grid item xs={12}>
+              <Paper style={{ padding: 16 }}>
+                <Typography variant="h6" gutterBottom>
+                  飼料分布
+                </Typography>
+                <Box height={300}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={feedDistribution}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={true}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        nameKey="name"
+                        label={({ name, percent }) => `${name}: ${percent}%`}
+                      >
+                        {feedDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => `¥${value.toLocaleString()}`} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Box>
+              </Paper>
+            </Grid>
+            
+            {/* 栄養素分析グラフ */}
+            <Grid item xs={12}>
+              <Paper style={{ padding: 16 }}>
+                <Typography variant="h6" gutterBottom>
+                  栄養素分析
+                </Typography>
+                <Box height={300}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={nutritionData}
+                      margin={{
+                        top: 5,
+                        right: 30,
+                        left: 20,
+                        bottom: 5,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="value" name="平均値 (%)" fill="#8884d8" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              </Paper>
+            </Grid>
+          </Grid>
         </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Paper className="p-4">
-            <Typography variant="h6" gutterBottom>
-              栄養分析
-            </Typography>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={nutritionData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="value" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Paper>
-        </Grid>
-
-        {/* 在庫アラート */}
-        <Grid item xs={12}>
-          <Paper className="p-4">
+        
+        {/* 右側: 在庫アラート */}
+        <Grid item xs={12} md={4}>
+          <Paper style={{ padding: 16, height: '100%' }}>
             <Typography variant="h6" gutterBottom>
               在庫アラート
             </Typography>
+            <Box display="flex" justifyContent="space-around" mb={2}>
+              <Chip
+                icon={<ErrorIcon />}
+                label={`${criticalItems.length} クリティカル`}
+                style={{ backgroundColor: STATUS_COLORS.critical, color: 'white' }}
+              />
+              <Chip
+                icon={<WarningIcon />}
+                label={`${warningItems.length} 警告`}
+                style={{ backgroundColor: STATUS_COLORS.warning, color: 'white' }}
+              />
+              <Chip
+                icon={<CheckCircleIcon />}
+                label={`${normalItems} 正常`}
+                style={{ backgroundColor: STATUS_COLORS.normal, color: 'white' }}
+              />
+            </Box>
             <List>
               {criticalItems.map((item) => (
                 <ListItem key={item.id}>
                   <ListItemIcon>
-                    <WarningIcon color="error" />
+                    <ErrorIcon style={{ color: STATUS_COLORS.critical }} />
                   </ListItemIcon>
                   <ListItemText
-                    primary={`${item.name} - 残り${item.daysRemaining}日`}
-                    secondary={`現在の在庫: ${item.currentStock}${item.unit}`}
+                    primary={item.name}
+                    secondary={`${item.currentStock}${item.unit} (残り${item.daysRemaining}日分)`}
                   />
                 </ListItem>
               ))}
               {warningItems.map((item) => (
                 <ListItem key={item.id}>
                   <ListItemIcon>
-                    <WarningIcon color="secondary" />
+                    <WarningIcon style={{ color: STATUS_COLORS.warning }} />
                   </ListItemIcon>
                   <ListItemText
-                    primary={`${item.name} - 残り${item.daysRemaining}日`}
-                    secondary={`現在の在庫: ${item.currentStock}${item.unit}`}
+                    primary={item.name}
+                    secondary={`${item.currentStock}${item.unit} (残り${item.daysRemaining}日分)`}
                   />
                 </ListItem>
               ))}
               {criticalItems.length === 0 && warningItems.length === 0 && (
                 <ListItem>
                   <ListItemIcon>
-                    <CheckCircleIcon color="primary" />
+                    <CheckCircleIcon style={{ color: STATUS_COLORS.normal }} />
                   </ListItemIcon>
-                  <ListItemText primary="在庫は正常です" />
+                  <ListItemText primary="すべての在庫レベルは正常です" />
                 </ListItem>
               )}
             </List>
@@ -202,4 +249,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;
